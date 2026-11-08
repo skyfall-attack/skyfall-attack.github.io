@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0a0c10">
+  <meta name="description" content="SKYFALL: Microarchitectural Data Sampling on AMD. Explore how physical-address way prediction exposes confidential VM state, decrypted microcode, and SMM memory.">
+  <link rel="canonical" href="https://skyfall-attack.github.io/">
+  <meta property="og:title" content="SKYFALL: Microarchitectural Data Sampling on AMD">
+  <meta property="og:description" content="Leakage of SEV-SNP guest state, decrypted microcode, and protected SMM memory through residual CPU cache state. IEEE S&amp;P 2027.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SKYFALL">
+  <meta property="og:url" content="https://skyfall-attack.github.io/">
+  <meta property="og:image" content="https://skyfall-attack.github.io/assets/skyfall-link-preview.png">
+  <meta property="og:image:secure_url" content="https://skyfall-attack.github.io/assets/skyfall-link-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="627">
+  <meta property="og:image:alt" content="SKYFALL: Microarchitectural Data Sampling on AMD. A protected SEV-SNP VM leaves residual cache state that leaks binary data to an attacker.">
+  <title>SKYFALL — Microarchitectural Data Sampling on AMD</title>
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <script>
+    try {
+      const savedTheme = localStorage.getItem('skyfall-theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') document.documentElement.dataset.theme = savedTheme;
+    } catch { /* Keep the default theme when storage is unavailable. */ }
+  </script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="animation.css">
+  <link rel="stylesheet" href="hero.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#overview">Skip to research</a>
+  <div class="reading-progress" aria-hidden="true"></div>
+  <header class="header">
+    <a class="brand" href="#top" aria-label="SKYFALL home"><svg class="brand-cpu" viewBox="0 0 56 64" aria-hidden="true" fill="none">
+  <g stroke="#f5a078" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="round">
+    <path d="M18 2v6m10-6v6m10-6v6M3 16h7m-7 9h7m-7 9h7m36-18h7m-7 9h7m-7 9h7M18 42v7m20-7v7"/>
+    <path d="M22 42H12a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h32a2 2 0 0 1 2 2v30a2 2 0 0 1-2 2H34"/>
+    <path d="M23 34h-5V16h20v18h-5" stroke-opacity=".6" stroke-width="1.4"/>
+  </g>
+  <g fill="#f5a078"><rect x="24" y="22" width="6" height="6"/><rect x="33" y="22" width="3" height="3" opacity=".55"/><rect class="logo-bit logo-bit-one" x="25" y="34" width="5" height="6"/><rect class="logo-bit logo-bit-two" x="30" y="45" width="4" height="5" opacity=".8"/><rect class="logo-bit logo-bit-three" x="23" y="55" width="3" height="4" opacity=".5"/></g>
+</svg>
+SKYFALL<span class="brand-dot">.</span></a>
+    <nav aria-label="Main navigation"><a href="#top">Overview</a><a href="#overview">Summary</a><a href="#mechanism">What went wrong</a><a href="#impact">Exploits</a><a href="#systems">Systems</a><a href="#faq">FAQ</a></nav>
+    <div class="header-actions">
+      <a class="nav-paper" href="assets/skyfall.pdf" target="_blank" rel="noopener"><span class="paper-long">Read the paper</span><span class="paper-short">Paper</span><span aria-hidden="true">↗</span></a>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Light mode" aria-pressed="false" title="Switch to light mode" hidden>
+        <svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+        <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14A8.8 8.8 0 0 1 10 3.5 8.9 8.9 0 1 0 20.5 14Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <h1 id="hero-title">SKYFALL</h1>
+      <div class="hero-bottom">
+        <div class="hero-copy"><h2 class="paper-title">Microarchitectural Data Sampling on AMD</h2><p>A transient execution attack that reaches across confidential virtual machines, microcode, and system management memory.</p><p class="publication"><span>IEEE S&amp;P 2027</span></p><div class="hero-actions"><a class="button primary" href="assets/skyfall.pdf" target="_blank" rel="noopener">Paper <span aria-hidden="true">↗</span></a><a class="button hero-resource" href="https://github.com/skyfall-attack" target="_blank" rel="noopener">Code <span aria-hidden="true">↗</span></a><a class="button hero-resource" href="#citation" data-open-citation>Cite this paper <span aria-hidden="true">⧉</span></a></div></div>
+        <div class="chip-art" role="img" aria-label="Three conceptual layers: an SEV-SNP virtual machine loads data into residual same-core cache and predictor state, which leaks sampled binary data to an attacker below">
+          <svg class="chip-svg breach-svg" viewBox="0 0 700 630" aria-hidden="true">
+<defs>
+  <filter id="layer-bloom" x="-100%" y="-50%" width="300%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
+  <filter id="layer-glow" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="1.8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+
+<clipPath id="vm-surface"><path d="M140 120 350 42 560 120 350 198Z"/></clipPath>
+<clipPath id="cache-surface"><path d="M120 310 350 224 580 310 350 396Z"/></clipPath>
+<clipPath id="attacker-surface"><path d="M120 500 350 414 580 500 350 586Z"/></clipPath>
+</defs>
+<g class="layer-attacker" data-stage="attacker"><path class="layer-edge" d="M120 500v12l230 86 230-86v-12L350 586Z"/><path class="layer-surface" d="M120 500 350 414 580 500 350 586Z"/><g clip-path="url(#attacker-surface)"><path class="layer-grid" d="M-68 390 482 610M432 390 -118 610"/><path class="layer-grid" d="M-40 390 510 610M460 390 -90 610"/><path class="layer-grid" d="M-12 390 538 610M488 390 -62 610"/><path class="layer-grid" d="M16 390 566 610M516 390 -34 610"/><path class="layer-grid" d="M44 390 594 610M544 390 -6 610"/><path class="layer-grid" d="M72 390 622 610M572 390 22 610"/><path class="layer-grid" d="M100 390 650 610M600 390 50 610"/><path class="layer-grid" d="M128 390 678 610M628 390 78 610"/><path class="layer-grid" d="M156 390 706 610M656 390 106 610"/><path class="layer-grid" d="M184 390 734 610M684 390 134 610"/><path class="layer-grid" d="M212 390 762 610M712 390 162 610"/><path class="layer-grid" d="M240 390 790 610M740 390 190 610"/><path class="layer-grid" d="M268 390 818 610M768 390 218 610"/></g><path class="layer-perimeter" d="M140 500 350 422 560 500 350 578Z"/>
+<rect class="attacker-window" x="234" y="468" width="232" height="72" rx="6"/><path class="attacker-window-bar" d="M240 469h220a5 5 0 0 1 5 5v12H235v-12a5 5 0 0 1 5-5Z"/><circle class="attacker-dot" cx="246" cy="477" r="2"/><circle class="attacker-dot" cx="254" cy="477" r="2"/><circle class="attacker-dot" cx="262" cy="477" r="2"/>
+<g class="sample-slot" data-slot="0" data-bit="0" style="--slot:0"><rect class="sample-cell" x="243" y="493" width="22" height="29" rx="3"/><text class="sample-bit" x="254" y="514">0</text></g>
+<g class="sample-slot" data-slot="1" data-bit="1" style="--slot:1"><rect class="sample-cell" x="270" y="493" width="22" height="29" rx="3"/><text class="sample-bit" x="281" y="514">1</text></g>
+<g class="sample-slot" data-slot="2" data-bit="0" style="--slot:2"><rect class="sample-cell" x="297" y="493" width="22" height="29" rx="3"/><text class="sample-bit" x="308" y="514">0</text></g>
+<g class="sample-slot" data-slot="3" data-bit="1" style="--slot:3"><rect class="sample-cell" x="324" y="493" width="22" height="29" rx="3"/><text class="sample-bit" x="335" y="514">1</text></g>
+<g class="sample-slot" data-slot="4" data-bit="0" style="--slot:4"><rect class="sample-cell" x="351" y="493" width="22" height="29" rx="3"/><text class="sample-bit" x="362" y="514">0</text></g>
+<g class="sample-slot" data-slot="5" data-bit="1" style="--slot:5"><rect class="sample-cell" x="378" y="493" width="22" height="29" rx="3"/><text class="sample-bit" x="389" y="514">1</text></g>
+<g class="sample-slot" data-slot="6" data-bit="0" style="--slot:6"><rect class="sample-cell" x="405" y="493" width="22" height="29" rx="3"/><text class="sample-bit" x="416" y="514">0</text></g>
+<g class="sample-slot" data-slot="7" data-bit="1" style="--slot:7"><rect class="sample-cell" x="432" y="493" width="22" height="29" rx="3"/><text class="sample-bit" x="443" y="514">1</text></g>
+</g>
+<path class="layer-guide" d="M170 120v380M530 120v380"/>
+
+<g class="layer-cache" data-stage="cache"><path class="layer-edge" d="M120 310v10l230 86 230-86v-10L350 396Z"/><path class="layer-surface" d="M120 310 350 224 580 310 350 396Z"/><g clip-path="url(#cache-surface)"><path class="layer-grid" d="M-68 200 482 420M432 200 -118 420"/><path class="layer-grid" d="M-40 200 510 420M460 200 -90 420"/><path class="layer-grid" d="M-12 200 538 420M488 200 -62 420"/><path class="layer-grid" d="M16 200 566 420M516 200 -34 420"/><path class="layer-grid" d="M44 200 594 420M544 200 -6 420"/><path class="layer-grid" d="M72 200 622 420M572 200 22 420"/><path class="layer-grid" d="M100 200 650 420M600 200 50 420"/><path class="layer-grid" d="M128 200 678 420M628 200 78 420"/><path class="layer-grid" d="M156 200 706 420M656 200 106 420"/><path class="layer-grid" d="M184 200 734 420M684 200 134 420"/><path class="layer-grid" d="M212 200 762 420M712 200 162 420"/><path class="layer-grid" d="M240 200 790 420M740 200 190 420"/><path class="layer-grid" d="M268 200 818 420M768 200 218 420"/></g><path class="layer-perimeter" d="M140 310 350 232 560 310 350 388Z"/>
+<g><path class="cache-cell-edge" d="M277.0 274.0v7l28 11 28-11v-7L305.0 285.0Z"/><path class="cache-cell" d="M277.0 274.0 305.0 263.0 333.0 274.0 305.0 285.0Z"/><path class="cache-hot" data-slot="0" data-bit="0" d="M277.0 274.0 305.0 263.0 333.0 274.0 305.0 285.0Z" style="--slot:0"/><path class="cache-cell-line" d="M288.0 272.0l23 9m-14-13 23 9"/></g>
+<g><path class="cache-cell-edge" d="M322.0 291.0v7l28 11 28-11v-7L350.0 302.0Z"/><path class="cache-cell" d="M322.0 291.0 350.0 280.0 378.0 291.0 350.0 302.0Z"/><path class="cache-hot" data-slot="1" data-bit="1" d="M322.0 291.0 350.0 280.0 378.0 291.0 350.0 302.0Z" style="--slot:1"/><path class="cache-cell-line" d="M333.0 289.0l23 9m-14-13 23 9"/></g>
+<g><path class="cache-cell-edge" d="M367.0 308.0v7l28 11 28-11v-7L395.0 319.0Z"/><path class="cache-cell" d="M367.0 308.0 395.0 297.0 423.0 308.0 395.0 319.0Z"/><path class="cache-hot" data-slot="2" data-bit="0" d="M367.0 308.0 395.0 297.0 423.0 308.0 395.0 319.0Z" style="--slot:2"/><path class="cache-cell-line" d="M378.0 306.0l23 9m-14-13 23 9"/></g>
+<g><path class="cache-cell-edge" d="M412.0 325.0v7l28 11 28-11v-7L440.0 336.0Z"/><path class="cache-cell" d="M412.0 325.0 440.0 314.0 468.0 325.0 440.0 336.0Z"/><path class="cache-hot" data-slot="3" data-bit="1" d="M412.0 325.0 440.0 314.0 468.0 325.0 440.0 336.0Z" style="--slot:3"/><path class="cache-cell-line" d="M423.0 323.0l23 9m-14-13 23 9"/></g>
+<g><path class="cache-cell-edge" d="M232.0 291.0v7l28 11 28-11v-7L260.0 302.0Z"/><path class="cache-cell" d="M232.0 291.0 260.0 280.0 288.0 291.0 260.0 302.0Z"/><path class="cache-hot" data-slot="4" data-bit="0" d="M232.0 291.0 260.0 280.0 288.0 291.0 260.0 302.0Z" style="--slot:4"/><path class="cache-cell-line" d="M243.0 289.0l23 9m-14-13 23 9"/></g>
+<g><path class="cache-cell-edge" d="M277.0 308.0v7l28 11 28-11v-7L305.0 319.0Z"/><path class="cache-cell" d="M277.0 308.0 305.0 297.0 333.0 308.0 305.0 319.0Z"/><path class="cache-hot" data-slot="5" data-bit="1" d="M277.0 308.0 305.0 297.0 333.0 308.0 305.0 319.0Z" style="--slot:5"/><path class="cache-cell-line" d="M288.0 306.0l23 9m-14-13 23 9"/></g>
+<g><path class="cache-cell-edge" d="M322.0 325.0v7l28 11 28-11v-7L350.0 336.0Z"/><path class="cache-cell" d="M322.0 325.0 350.0 314.0 378.0 325.0 350.0 336.0Z"/><path class="cache-hot" data-slot="6" data-bit="0" d="M322.0 325.0 350.0 314.0 378.0 325.0 350.0 336.0Z" style="--slot:6"/><path class="cache-cell-line" d="M333.0 323.0l23 9m-14-13 23 9"/></g>
+<g><path class="cache-cell-edge" d="M367.0 342.0v7l28 11 28-11v-7L395.0 353.0Z"/><path class="cache-cell" d="M367.0 342.0 395.0 331.0 423.0 342.0 395.0 353.0Z"/><path class="cache-hot" data-slot="7" data-bit="1" d="M367.0 342.0 395.0 331.0 423.0 342.0 395.0 353.0Z" style="--slot:7"/><path class="cache-cell-line" d="M378.0 340.0l23 9m-14-13 23 9"/></g>
+<path class="layer-trace" d="M185 310 260 340 350 304 440 340 515 310M350 246v58l-65 26 65 26v27"/><path class="cache-trace-packet" d="M185 310 260 340 350 304 440 340 515 310" pathLength="100"/><path class="cache-trace-packet packet-delayed" d="M350 246v58l-65 26 65 26v27" pathLength="100"/></g>
+<g class="layer-vm" data-stage="vm"><path class="layer-edge" d="M140 120v8l210 78 210-78v-8L350 198Z"/><path class="layer-surface vm-surface" d="M140 120 350 42 560 120 350 198Z"/><path class="layer-perimeter" d="M160 120 350 50 540 120 350 190Z"/>
+<path class="vm-window-edge" d="M268 108v17l82 32 82-32v-17L350 140Z"/><path class="vm-window" d="M268 108 350 76 432 108 350 140Z"/><path class="vm-inner" d="M280 108 350 81 420 108 350 135Z"/><path class="vm-rim" d="M268 108 350 76 432 108 350 140Z" pathLength="100"/><g class="vm-lock"><path d="M340 107v-8a10 10 0 0 1 20 0v8"/><rect x="337" y="107" width="26" height="20" rx="2"/></g><rect class="vm-key" x="348" y="113" width="4" height="8"/></g>
+<path class="load-route" d="M350 139V308"/><path class="load-packet" d="M350 139V308" pathLength="100"/>
+<rect class="load-sample" x="347" y="185" width="6" height="9" style="--delay:-0.00s"/>
+<rect class="load-sample" x="347" y="225" width="6" height="9" style="--delay:-1.30s"/>
+<rect class="load-sample" x="347" y="265" width="6" height="9" style="--delay:-2.60s"/>
+<path class="leak-halo" d="M350 322V472"/><path class="leak-route" d="M350 322V468"/><g class="bit-transfers">
+<text class="leaked-bit" x="350" y="342" data-slot="0" data-bit="0" style="--slot:0;--source-x:-45.0px;--source-y:-68.0px;--land-x:-96px">0</text>
+<text class="leaked-bit" x="350" y="342" data-slot="1" data-bit="1" style="--slot:1;--source-x:0.0px;--source-y:-51.0px;--land-x:-69px">1</text>
+<text class="leaked-bit" x="350" y="342" data-slot="2" data-bit="0" style="--slot:2;--source-x:45.0px;--source-y:-34.0px;--land-x:-42px">0</text>
+<text class="leaked-bit" x="350" y="342" data-slot="3" data-bit="1" style="--slot:3;--source-x:90.0px;--source-y:-17.0px;--land-x:-15px">1</text>
+<text class="leaked-bit" x="350" y="342" data-slot="4" data-bit="0" style="--slot:4;--source-x:-90.0px;--source-y:-51.0px;--land-x:12px">0</text>
+<text class="leaked-bit" x="350" y="342" data-slot="5" data-bit="1" style="--slot:5;--source-x:-45.0px;--source-y:-34.0px;--land-x:39px">1</text>
+<text class="leaked-bit" x="350" y="342" data-slot="6" data-bit="0" style="--slot:6;--source-x:0.0px;--source-y:-17.0px;--land-x:66px">0</text>
+<text class="leaked-bit" x="350" y="342" data-slot="7" data-bit="1" style="--slot:7;--source-x:45.0px;--source-y:0.0px;--land-x:93px">1</text>
+</g>
+<g class="stage-callout"><path d="M492 105H668V62"/><path d="M152 322H32V352"/><path d="M497 529H668V541"/></g>
+<g class="stage-node"><circle cx="492" cy="105" r="2.5"/><circle cx="152" cy="322" r="2.5"/><circle cx="497" cy="529" r="2.5"/></g>
+<g class="stage-label"><text x="668" y="49" text-anchor="end">SEV-SNP VM</text><text class="stage-label-wide" x="32" y="382">Residual cache state</text><text class="stage-label-small" x="32" y="370">Residual<tspan x="32" dy="26">cache state</tspan></text><text x="668" y="565" text-anchor="end">Attacker</text></g>
+<text class="stage-sublabel" x="32" y="403">L1D · µtag predictor</text>
+</svg>
+        </div>
+      </div>
+      <div class="hero-footer"><a href="#overview">SCROLL TO GO DEEPER <span>↓</span></a><span>THREE BOUNDARIES. ONE OVERLOOKED PATH.</span><span class="mono">CVE-2026-40671</span></div>
+    </section>
+
+    <div class="research-content">
+      <div class="article-tools">
+        <button id="motion-toggle" type="button" aria-pressed="false">Pause animation</button>
+      </div>
+
+      <section id="overview" aria-labelledby="summary-heading">
+        <h2 id="summary-heading">Summary</h2>
+        <p>SKYFALL is a microarchitectural data sampling attack on AMD processors. It allows privileged software to recover sensitive data from inside the CPU, crossing isolation boundaries that are supposed to protect confidential virtual machines, microcode, and System Management Mode memory.</p>
+        <p>The attack builds on Transient Scheduler Attacks (TSA). We show that AMD’s cache way predictor computes an address hash for fast lookup not only virtual addresses, but also physical and CPU-internal addresses. An attacker can exploit colliding address hashes to sample data that is architecturally inaccessible.</p>
+        <p>We combine this finding with gaps in existing TSA mitigations to demonstrate three attacks: extracting SEV-SNP guest state, recovering decrypted microcode patches, and leaking protected SMM state. We reported our findings to AMD, which assigned <strong>CVE-2026-40671</strong>.</p>
+      </section>
+
+
+
+      <section id="mechanism" aria-labelledby="mechanism-heading">
+        <h2 id="mechanism-heading">What went wrong?</h2>
+        <h3 id="utags">What is a µtag?</h3>
+        <p>A CPU cache keeps recently used data close to the processor. In AMD’s L1 data cache, a memory location can occupy one of several slots, called <em>ways</em>. To avoid checking every way on every access, the CPU predicts which way to read.</p>
+        <p>This prediction uses a <strong>micro-tag (µtag)</strong>: a small hash derived from an address. AMD initally purposed the µtag to accelerate cache lookup while waiting for the TLB to return the physical address. A matching µtag is a hint to the CPU that the desired data is in a particular way; the full physical tag still has to be checked. Different addresses can produce the same µtag, a situation called a <em>collision</em>.</p>
+        <p>Software mostly accesses memory through <strong>virtual addresses</strong>, which the CPU translates into <strong>physical addresses</strong>. Way prediction can begin before this translation finishes. Prior to SKYFALL, TSA attacks exploited µtags derived from virtual addresses. Our analysis shows that privileged instructions and CPU-internal memory also have a µtag derived from the physical addresses.</p>
+
+        <h3>Physical and virtual µtags can alias</h3>
+        <p>A sensitive access through a physical address can leave data and its µtag in the L1 cache. An attacker then chooses a virtual address with a colliding µtag. Although that address maps to different memory, it can select the way containing the sensitive value.</p>
+        <figure class="collision-example" aria-labelledby="collision-caption">
+          <p class="collision-context">Prior to SKYFALL AMD only considered the virtual ↔ virtual collision.<strong>SKYFALL: physical ↔ virtual.</strong></p>
+          <div class="collision-paths">
+            <div class="address-path"><div><span class="address-kind"><strong class="address-domain domain-physical">PHYSICAL</strong><span>Protected data address</span></span><code id="physical-address">0x0000000001234000</code></div><span class="hash-arrow" aria-hidden="true">→</span><div class="tag-value"><span>µtag</span><code id="physical-tag">0x2c</code></div></div>
+            <div class="address-path virtual-path"><div><span class="address-kind"><strong class="address-domain domain-virtual">VIRTUAL</strong><span>Attacker’s address</span></span><code id="example-address">0x00007f0009235000</code></div><span class="hash-arrow" aria-hidden="true">→</span><div class="tag-value"><span>µtag</span><code id="example-tag">0x2c</code></div></div>
+          </div>
+          <div class="collision-result" aria-live="polite" aria-atomic="true"><span class="collision-indicator" aria-hidden="true"></span><p id="collision-result">Different addresses. Same µtag.<span>Both can select the way containing the protected data.</span></p></div>
+          <button id="collision-toggle" type="button" hidden>Try a non-colliding address <span aria-hidden="true">↗</span></button>
+          <details class="hash-details">
+            <summary>How are these µtags computed?</summary>
+            <p>For Zen 3 and Zen 4, each output bit is the XOR of two address bits. Bit 0 is the least significant bit. The eight output bits form U = ∑ u<sub>i</sub> · 2<sup>i</sup>.</p>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Zen 3 and Zen 4 micro-tag computation">
+              <table>
+                <thead><tr><th scope="col">Output bit</th><th scope="col">Physical address</th><th scope="col">Virtual address</th></tr></thead>
+                <tbody>
+                <tr data-tag-bit="0"><th scope="row">u<sub>0</sub> = v<sub>12</sub> ⊕ v<sub>27</sub></th><td>0 ⊕ 0 = 0</td><td id="hash-virtual-0">1 ⊕ 1 = 0</td></tr>
+                <tr data-tag-bit="1"><th scope="row">u<sub>1</sub> = v<sub>13</sub> ⊕ v<sub>26</sub></th><td>0 ⊕ 0 = 0</td><td id="hash-virtual-1">0 ⊕ 0 = 0</td></tr>
+                <tr data-tag-bit="2"><th scope="row">u<sub>2</sub> = v<sub>14</sub> ⊕ v<sub>25</sub></th><td>1 ⊕ 0 = 1</td><td id="hash-virtual-2">1 ⊕ 0 = 1</td></tr>
+                <tr data-tag-bit="3"><th scope="row">u<sub>3</sub> = v<sub>19</sub> ⊕ v<sub>24</sub></th><td>0 ⊕ 1 = 1</td><td id="hash-virtual-3">0 ⊕ 1 = 1</td></tr>
+                <tr data-tag-bit="4"><th scope="row">u<sub>4</sub> = v<sub>18</sub> ⊕ v<sub>23</sub></th><td>0 ⊕ 0 = 0</td><td id="hash-virtual-4">0 ⊕ 0 = 0</td></tr>
+                <tr data-tag-bit="5"><th scope="row">u<sub>5</sub> = v<sub>17</sub> ⊕ v<sub>22</sub></th><td>1 ⊕ 0 = 1</td><td id="hash-virtual-5">1 ⊕ 0 = 1</td></tr>
+                <tr data-tag-bit="6"><th scope="row">u<sub>6</sub> = v<sub>16</sub> ⊕ v<sub>21</sub></th><td>1 ⊕ 1 = 0</td><td id="hash-virtual-6">1 ⊕ 1 = 0</td></tr>
+                <tr data-tag-bit="7"><th scope="row">u<sub>7</sub> = v<sub>15</sub> ⊕ v<sub>20</sub></th><td>0 ⊕ 0 = 0</td><td id="hash-virtual-7">0 ⊕ 0 = 0</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="hash-total" id="hash-total">Physical U = 0b00101100 = 0x2c; virtual U = 0b00101100 = 0x2c.</p>
+            <p>The colliding virtual address flips input bits 12 and 27 together, leaving u<sub>0</sub> unchanged. The non-colliding comparison flips only bit 12 back, which changes u<sub>0</sub>.</p>
+          </details>
+        </figure>
+        <p>TSA-L1 can transiently forward data from that predicted way before the CPU resolves the mismatch. The attacker amplifies a bit of the forwarded value into scheduler contention and measures it with Performance Monitoring Counters (PMCs). Repeated measurements recover the data without architectural access.</p>
+        <h3>Some sensitive paths return without cleanup</h3>
+        <p>AMD’s VERW-based TSA mitigation clears the relevant predictor state. However, some privileged execution paths introduce sensitive data and return without performing this cleanup. Those paths include an aborting VMRUN, the microcode patch loader, and the SMM exit path examined in our experiments.</p>
+        <p>For example, VMRUN loads and decrypts confidential guest state before completing all checks. If a later check fails, the instruction aborts. The guest is never entered, but its plaintext state is already in the cache and remains reachable through TSA-L1.</p>
+        <p>We use AMD’s Instruction Based Sampling (IBS) to trace these internal instruction paths and understand where the protections are missing. The root cause is the combination of <strong>physical/virtual µtag aliasing</strong> and <strong>incomplete predictor-state cleanup</strong>.</p>
+      </section>
+
+      <section id="impact" aria-labelledby="impact-heading">
+        <h2 id="impact-heading">What did we exploit?</h2>
+        <div class="exploit-case">
+        <h3><span class="exploit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="M9 11h6v5H9zM10 11V9a2 2 0 0 1 4 0v2"/></svg></span>SEV-SNP confidential virtual machines</h3>
+        <p>AMD SEV-SNP is designed to protect a virtual machine from a malicious host, including by encrypting its memory and saved register state. We show that a malicious hypervisor can use an aborting VMRUN to bring decrypted guest state into the L1 cache and then extract it with TSA-L1.</p>
+        <p>We recover register state from the Virtual Machine Save Area (VMSA) and demonstrate AES-XTS disk-encryption key recovery. The key demonstration uses a modified guest kernel to trigger a VM exit when the key is in registers. We also recover guest memory at three fixed cache-line offsets within a selected page: <code>0x0c0</code>, <code>0x380</code>, and <code>0x3c0</code>. This memory primitive does not expose every byte in a page.</p>
+        </div>
+        <div class="exploit-case">
+        <h3><span class="exploit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/><path d="M9 1v5m6-5v5M9 18v5m6-5v5M1 9h5m-5 6h5m12-6h5m-5 6h5M9 9h6v6H9z"/></svg></span>Decrypted microcode patches</h3>
+        <p>The microcode patch loader decrypts updates in a CPU-internal, HyperTransport-addressed region. We sample the residual state and recover decrypted microcode patch contents on all three tested systems.</p>
+        <p>On the tested EPYC 7313, we additionally recover the CMAC key used before the EntrySign mitigations. The tested EPYC 9124 and 9334 systems already include those mitigations and do not expose that key through the same procedure, but still leak decrypted patch contents.</p>
+        </div>
+        <div class="exploit-case">
+        <h3><span class="exploit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 8 9-5 9 5-9 5ZM3 12l9 5 9-5M3 16l9 5 9-5"/></svg></span>System Management Mode memory</h3>
+        <p>System Management Mode (SMM) runs privileged firmware in memory that is normally inaccessible even to the operating-system kernel. After returning from SMM, we use TSA-L1 to recover fields from its protected State Save Area, including SMBASE, CR3, and R13.</p>
+        <p>All tested field values are recovered with 100% accuracy in the experiments. This demonstrates leakage from protected SMM memory; it is not a demonstration of a complete arbitrary SMM memory dump.</p>
+        </div>
+      </section>
+
+      <section id="systems" aria-labelledby="systems-heading">
+        <h2 id="systems-heading">Affected systems</h2>
+        <p>We demonstrate SKYFALL on the following AMD EPYC systems with the respective microcode versions.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Tested AMD processors and microcode">
+          <table>
+            <thead><tr><th scope="col">Processor</th><th scope="col">Architecture</th><th scope="col">Tested microcode</th></tr></thead>
+            <tbody>
+              <tr><td>AMD EPYC 7313</td><td>Zen 3</td><td><code>0x0a0011d7</code></td></tr>
+              <tr><td>AMD EPYC 9124</td><td>Zen 4</td><td><code>0x0a101158</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="faq" aria-labelledby="faq-heading">
+        <h2 id="faq-heading">Frequently asked questions</h2>
+        <details class="faq-item">
+          <summary>What privileges does an attacker need?<span aria-hidden="true">+</span></summary>
+          <div class="faq-answer"><p>The confidential-VM attack requires a malicious host or hypervisor. The microcode and SMM demonstrations also use privileged local software. The attacker needs access to the relevant instruction paths and performance counters. These privileges are especially relevant to confidential computing, where the host is explicitly outside the guest’s trust boundary.</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>Does the attack require physical access?<span aria-hidden="true">+</span></summary>
+          <div class="faq-answer"><p>No physical manipulation is needed for our demonstrations. The attacks run in software with the privileges described above.</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>Does SKYFALL break memory encryption?<span aria-hidden="true">+</span></summary>
+          <div class="faq-answer"><p>It does not break the underlying encryption algorithm. Instead, it samples plaintext after the CPU has decrypted it internally. Encrypting memory does not prevent leakage through residual microarchitectural state.</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>How reliable and fast is the attack?<span aria-hidden="true">+</span></summary>
+          <div class="faq-answer"><p>In controlled bulk TSA-L1 experiments, we measure 463 KiB/s on EPYC 7313 and 443 KiB/s on EPYC 9124 at approximately 98.7% mean bit accuracy with one sample per bit. These are primitive-level measurements, not end-to-end secret-extraction rates. The attacks require calibration and repeated measurements; noise and the targeted instruction path affect reliability. The microcode-loader path produces a weaker and less stable signal.</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>Why do the existing TSA mitigations miss it?<span aria-hidden="true">+</span></summary>
+          <div class="faq-answer"><p>VERW-based predictor clearing works when it executes, but sensitive physical-address and CPU-internal paths are not all covered. A failing VMRUN returns without the cleanup normally applied at confidential guest exit.</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>Is there a patch or CVE?<span aria-hidden="true">+</span></summary>
+          <div class="faq-answer"><p>AMD assigned <strong>CVE-2026-40671</strong>. AMD will likely provide microcode updates to patch the vulnerability.</p></div>
+        </details>
+      </section>
+
+      <section id="authors" aria-labelledby="authors-heading">
+        <h2 id="authors-heading">Authors</h2>
+        <ul class="author-list">
+          <li><a href="https://benschlueter.com/" target="_blank" rel="noopener">Benedict Schlüter</a><sup>*</sup> <span>— ETH Zurich</span></li>
+          <li><a href="https://www.linkedin.com/in/avezzu/" target="_blank" rel="noopener"> Alessandro Vezzù</a><sup>*</sup> <span>— ETH Zurich</span></li>
+          <li><a href="https://moghimi.org/" target="_blank" rel="noopener">Daniel Moghimi</a> <span>— Google</span></li>
+          <li><a href="https://www.shwetashinde.org/" target="_blank" rel="noopener">Shweta Shinde</a> <span>— ETH Zurich</span></li>
+        </ul>
+        <p class="article-note">* Equal contribution.</p>
+      </section>
+
+      <section id="citation" aria-labelledby="citation-heading">
+        <h2 id="citation-heading">Paper & citation</h2>
+        <p><a href="assets/skyfall.pdf" target="_blank" rel="noopener">Read the paper ↗</a></p>
+        <p>IEEE Symposium on Security and Privacy (S&amp;P), 2027. <a class="citation-trigger" href="#citation" data-open-citation>Cite this paper</a></p>
+        <pre id="citation-text">@inproceedings{schlueter2027skyfall,
+  title = {{SKYFALL}: Microarchitectural Data Sampling on {AMD}},
+  author = {Schl{\"u}ter, Benedict and Vezz{\`u}, Alessandro and Moghimi, Daniel and Shinde, Shweta},
+  booktitle = {2027 IEEE Symposium on Security and Privacy (SP)},
+  year = {2027},
+  publisher = {IEEE}
+}</pre>
+        <div class="citation-actions"><button id="cite-button" type="button">Copy BibTeX</button><span id="copy-status" role="status"></span></div>
+      </section>
+    </div>
+  </main>
+  <dialog id="citation-dialog" aria-labelledby="citation-dialog-heading">
+    <div class="citation-dialog-content">
+      <form method="dialog"><button class="dialog-close" aria-label="Close citation">×</button></form>
+      <h2 id="citation-dialog-heading">Cite SKYFALL</h2>
+      <p>IEEE Symposium on Security and Privacy · 2027</p>
+      <pre id="dialog-citation-text"></pre>
+      <button id="dialog-copy-button" type="button">Copy BibTeX</button>
+      <span id="dialog-copy-status" role="status"></span>
+    </div>
+  </dialog>
+  <footer class="footer"><a class="brand" href="#top" aria-label="SKYFALL home"><svg class="brand-cpu" viewBox="0 0 56 64" aria-hidden="true" fill="none">
+  <g stroke="#f5a078" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="round">
+    <path d="M18 2v6m10-6v6m10-6v6M3 16h7m-7 9h7m-7 9h7m36-18h7m-7 9h7m-7 9h7M18 42v7m20-7v7"/>
+    <path d="M22 42H12a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h32a2 2 0 0 1 2 2v30a2 2 0 0 1-2 2H34"/>
+    <path d="M23 34h-5V16h20v18h-5" stroke-opacity=".6" stroke-width="1.4"/>
+  </g>
+  <g fill="#f5a078"><rect x="24" y="22" width="6" height="6"/><rect x="33" y="22" width="3" height="3" opacity=".55"/><rect class="logo-bit logo-bit-one" x="25" y="34" width="5" height="6"/><rect class="logo-bit logo-bit-two" x="30" y="45" width="4" height="5" opacity=".8"/><rect class="logo-bit logo-bit-three" x="23" y="55" width="3" height="4" opacity=".5"/></g>
+</svg>
+SKYFALL<span class="brand-dot">.</span></a><span>ETH ZURICH · GOOGLE</span><a href="#top">Back to top ↑</a></footer>
+</body>
+</html>

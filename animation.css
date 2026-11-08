@@ -1,0 +1,97 @@
+/* Three abstract layers: SEV-SNP VM → residual cache state → attacker. */
+.hero-bottom { margin-top: 0; }
+.chip-art { margin-top: 12px; }
+.breach-svg {
+  --bit-cycle: 16s; --bit-step: 2s;
+  --b-board: #101c28; --b-edge: #1b2d3e; --b-outline: #526b82;
+  --b-grid: #304b64; --b-die: #203a51; --b-face: #15293b;
+  --b-silicon: #0b1928; --b-glass: #29465f; --b-ink: #bdd0df;
+  --b-muted: #718ba2; --b-accent: #ffad79; --b-hot: #ffd1ad;
+  overflow: visible;
+}
+[data-theme="light"] .breach-svg {
+  --b-board: #d9e4ee; --b-edge: #b9ccdc; --b-outline: #7d97ad;
+  --b-grid: #a0b6c8; --b-die: #eaf0f5; --b-face: #c5d6e3;
+  --b-silicon: #cbdce9; --b-glass: #d4e3ef; --b-ink: #354f65;
+  --b-muted: #5b748b; --b-accent: #ac481c; --b-hot: #c35b2b;
+}
+.layer-surface { fill: var(--b-board); stroke: var(--b-outline); stroke-width: 1.1; }
+.layer-edge { fill: var(--b-edge); stroke: var(--b-outline); stroke-width: .8; }
+.layer-grid { fill: none; stroke: var(--b-grid); stroke-width: .7; }
+.layer-trace { fill: none; stroke: var(--b-accent); stroke-width: .8; opacity: .25; }
+.layer-guide { fill: none; stroke: var(--b-muted); stroke-width: .6; stroke-dasharray: 2 7; opacity: .3; }
+.layer-perimeter { fill: none; stroke: var(--b-outline); stroke-width: .8; stroke-dasharray: 3 5; }
+.layer-vm { animation: vm-suspend 9s ease-in-out infinite; }
+.vm-surface { fill: var(--b-glass); fill-opacity: .33; }
+.vm-window { fill: var(--b-die); stroke: var(--b-outline); stroke-width: 1; }
+.vm-window-edge { fill: var(--b-face); stroke: var(--b-outline); stroke-width: .8; }
+.vm-inner { fill: var(--b-silicon); stroke: var(--b-grid); stroke-width: .7; }
+.vm-lock { fill: none; stroke: var(--b-accent); stroke-width: 1.7; stroke-linejoin: round; }
+.vm-key { fill: var(--b-hot); }
+.vm-rim { fill: none; stroke: var(--b-accent); stroke-width: 1.6; stroke-dasharray: 6 94; animation: trace-flow 9s linear infinite; }
+.cache-cell { fill: var(--b-die); stroke: var(--b-outline); stroke-width: .8; }
+.cache-cell-edge { fill: var(--b-face); stroke: var(--b-outline); stroke-width: .6; }
+.cache-cell-line { stroke: var(--b-grid); stroke-width: .8; }
+.cache-hot { fill: var(--b-accent); opacity: .06; animation: cache-read var(--bit-cycle) linear infinite; animation-delay: calc(var(--slot) * var(--bit-step) - var(--bit-cycle)); }
+.cache-trace-packet { fill: none; stroke: var(--b-hot); stroke-width: 1.8; stroke-dasharray: 6 94; stroke-linecap: round; animation: trace-flow 5s linear infinite; }
+.packet-delayed { animation-delay: -2.4s; }
+.load-route { fill: none; stroke: var(--b-muted); stroke-width: .8; stroke-dasharray: 2 6; opacity: .45; }
+.load-packet { fill: none; stroke: var(--b-hot); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 5 95; animation: trace-flow 4s linear infinite; }
+.load-sample { fill: var(--b-hot); animation: load-descend 4s linear infinite; animation-delay: var(--delay, 0s); }
+.leak-route { fill: none; stroke: var(--b-accent); stroke-width: .9; opacity: .25; stroke-dasharray: 2 6; }
+.leak-halo { fill: none; stroke: var(--b-accent); stroke-width: 13; opacity: .08; filter: url(#layer-bloom); }
+.leaked-bit { fill: var(--b-hot); font: 16px var(--mono); text-anchor: middle; opacity: 0; animation: bit-delivery var(--bit-cycle) linear infinite; animation-delay: calc(var(--slot) * var(--bit-step) - var(--bit-cycle)); }
+.attacker-window { fill: var(--b-silicon); stroke: var(--b-outline); stroke-width: 1; }
+.attacker-window-bar { fill: var(--b-face); }
+.attacker-dot { fill: var(--b-outline); }
+.sample-cell { fill: var(--b-board); stroke: var(--b-grid); stroke-width: .8; animation: sample-arrival var(--bit-cycle) linear infinite; animation-delay: calc(var(--slot) * var(--bit-step) - var(--bit-cycle)); }
+.sample-bit { fill: var(--b-muted); font: 16px var(--mono); text-anchor: middle; animation: sample-ink var(--bit-cycle) linear infinite; animation-delay: calc(var(--slot) * var(--bit-step) - var(--bit-cycle)); }
+.stage-callout { fill: none; stroke: var(--b-outline); stroke-width: .8; opacity: .75; }
+.stage-node { fill: var(--b-board); stroke: var(--b-accent); stroke-width: 1.2; }
+.stage-label { fill: var(--b-ink); font: 500 19px var(--sans); letter-spacing: -.2px; }
+.stage-sublabel { fill: var(--b-muted); font: 400 14px var(--sans); }
+.stage-label-small { display: none; }
+.vm-rim, .load-packet, .cache-trace-packet, .leaked-bit { filter: url(#layer-glow); }
+[data-theme="light"] .vm-rim,
+[data-theme="light"] .load-packet,
+[data-theme="light"] .cache-trace-packet,
+[data-theme="light"] .leaked-bit { filter: none; }
+@keyframes trace-flow { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes vm-suspend { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes cache-read { 0%, 8% { opacity: .45; } 12%, 100% { opacity: .06; } }
+@keyframes load-descend { 0% { transform: translateY(-25px); opacity: 0; } 15%, 75% { opacity: .9; } 100% { transform: translateY(60px); opacity: 0; } }
+/* Launch one bit every two seconds, but give each a 5.44-second journey.
+   The resulting pipeline carries two or three bits at different stages.
+   Source, falling digit, and receiving cell share this one 16-second clock. */
+@keyframes bit-delivery {
+  0% { transform: translate(var(--source-x), var(--source-y)); opacity: 0; }
+  1.5% { transform: translate(var(--source-x), var(--source-y)); opacity: 1; }
+  10% { transform: translate(0, 0); opacity: 1; }
+  26% { transform: translate(0, 110px); opacity: 1; }
+  33.5% { opacity: 1; }
+  34% { transform: translate(var(--land-x), 172px); opacity: 0; }
+  35%, 100% { transform: translate(var(--land-x), 172px); opacity: 0; }
+}
+@keyframes sample-arrival {
+  0%, 33%, 42%, 100% { fill: var(--b-board); stroke: var(--b-grid); }
+  34%, 38% { fill: var(--b-accent); stroke: var(--b-hot); }
+}
+@keyframes sample-ink {
+  0%, 33%, 42%, 100% { fill: var(--b-muted); }
+  34%, 38% { fill: var(--b-silicon); }
+}
+@media (max-width: 760px) {
+  .chip-svg.breach-svg { max-height: 430px; }
+  .stage-label { font-size: 24px; letter-spacing: 0; }
+  .stage-label-wide { display: none; }
+  .stage-label-small { display: inline; }
+  .stage-sublabel { font-size: 17px; transform: translateY(20px); }
+  .leaked-bit, .sample-bit { font-size: 19px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .breach-svg * { animation: none !important; }
+  .cache-hot { opacity: .2; }
+  .leaked-bit { display: none; }
+  .load-sample, .sample-bit { opacity: .85; }
+  .sample-bit { fill: var(--b-accent); }
+}
