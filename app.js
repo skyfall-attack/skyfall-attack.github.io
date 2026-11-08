@@ -22,43 +22,15 @@ window.addEventListener('storage', event => {
 });
 
 const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-const motionButton = document.querySelector('#motion-toggle');
 let paused = motionQuery.matches;
-
 function updateMotion() {
   document.body.classList.toggle('motion-paused', paused);
-  motionButton.setAttribute('aria-pressed', String(paused));
-  motionButton.textContent = paused ? 'Resume animation' : 'Pause animation';
 }
-
-motionButton.addEventListener('click', () => {
-  paused = !paused;
-  updateMotion();
-  resetChipTilt();
-});
 motionQuery.addEventListener('change', event => {
   paused = event.matches;
   updateMotion();
-  resetChipTilt();
 });
 updateMotion();
-
-const chipArt = document.querySelector('.chip-art');
-function resetChipTilt() {
-  chipArt.style.setProperty('--chip-tilt-x', '0deg');
-  chipArt.style.setProperty('--chip-tilt-y', '0deg');
-}
-if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-  chipArt.addEventListener('pointermove', event => {
-    if (paused) return;
-    const rect = chipArt.getBoundingClientRect();
-    const x = Math.max(-.5, Math.min(.5, (event.clientX - rect.left) / rect.width - .5));
-    const y = Math.max(-.5, Math.min(.5, (event.clientY - rect.top) / rect.height - .5));
-    chipArt.style.setProperty('--chip-tilt-x', `${-y * 4}deg`);
-    chipArt.style.setProperty('--chip-tilt-y', `${x * 6}deg`);
-  });
-  chipArt.addEventListener('pointerleave', resetChipTilt);
-}
 
 const progress = document.querySelector('.reading-progress');
 const navLinks = [...document.querySelectorAll('.header nav a')];

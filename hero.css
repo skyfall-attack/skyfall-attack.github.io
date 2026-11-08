@@ -1,24 +1,68 @@
 /* Fit the introduction and scroll cue inside the initial viewport. */
+/* Quiet, static circuit traces live at the edge of the page. No filters,
+   animation, or interactive layers; the reading area fades to plain space. */
+.hero-grid {
+  background: none;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 18%, #000 74%);
+  mask-image: linear-gradient(90deg, transparent 18%, #000 74%);
+}
+.hero::before { display: none; }
+.hero-pattern { display: block; width: 100%; height: 100%; color: #b4c5d3; }
+.hero-pattern path, .hero-pattern circle { vector-effect: non-scaling-stroke; stroke-width: 1; }
+.pattern-registration { stroke: currentColor; opacity: .17; }
+.pattern-traces { stroke: currentColor; opacity: .36; }
+.pattern-accent { stroke: var(--orange); opacity: .42; }
+.pattern-pads { stroke: currentColor; fill: var(--bg); opacity: .46; }
+[data-theme="light"] .hero-pattern { color: #60798d; }
+[data-theme="light"] .pattern-registration { opacity: .12; }
+[data-theme="light"] .pattern-traces { opacity: .18; }
+[data-theme="light"] .pattern-accent { opacity: .16; }
+[data-theme="light"] .pattern-pads { opacity: .23; }
+/* The article keeps a quiet reading column. Only roomy desktop margins carry
+   this much fainter continuation; it never sits behind paragraphs. */
+@media screen and (min-width: 1100px) {
+  .research-content { position: relative; isolation: isolate; }
+  .research-content::before,
+  .research-content::after {
+    content: "";
+    position: absolute;
+    top: 70px;
+    bottom: 60px;
+    width: clamp(0px, calc((100vw - 870px) / 2 - 48px), 128px);
+    z-index: -1;
+    pointer-events: none;
+    background: url("assets/research-margin-pattern.svg") center top / 128px 420px repeat-y;
+    opacity: .12;
+    -webkit-mask-image: linear-gradient(transparent, #000 120px, #000 calc(100% - 120px), transparent);
+    mask-image: linear-gradient(transparent, #000 120px, #000 calc(100% - 120px), transparent);
+  }
+  .research-content::before { right: calc(100% + 24px); transform: scaleX(-1); }
+  .research-content::after { left: calc(100% + 24px); }
+  [data-theme="light"] .research-content::before,
+  [data-theme="light"] .research-content::after { opacity: .09; }
+}
+@media screen and (max-width: 760px) {
+  .hero-grid { opacity: .55; }
+}
 @media screen {
   :root { --header-height: 86px; }
   .hero {
     height: calc(100vh - var(--header-height));
     height: calc(100svh - var(--header-height));
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
     padding-top: 16px;
   }
   .hero h1 { font-size: clamp(96px, 19vw, 330px); font-size: clamp(96px, min(19vw, 30svh), 330px); line-height: 1; margin: 14px 0 4px; }
-  .hero-bottom { min-height: 0; margin: 0; gap: clamp(16px, 3vw, 44px); grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); grid-template-rows: minmax(0, 1fr); }
-  .hero-copy { padding: 4px 0; min-width: 0; }
+  .hero-bottom { min-height: 0; margin: 0; gap: clamp(16px, 3vw, 44px); grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .hero-copy { padding: 4px 0; min-width: 0; max-width: 900px; }
   .hero .paper-title { line-height: 1.2; margin-bottom: 10px; }
-  .hero .hero-copy > p:not(.publication) { margin: 12px 0 0; line-height: 1.6; font-size: 17px; }
+  .hero .hero-copy > p:not(.publication) { margin: 12px 0 0; line-height: 1.6; font-size: 17px; max-width: 680px; }
   .hero .hero-copy > p.publication { margin: 12px 0 0; font-size: 14px; line-height: 1.5; }
   .hero .publication > span { font-size: 14px; line-height: 1.5; padding: 4px 10px; }
   .hero .hero-actions { margin-top: 16px; gap: 10px; }
   .hero .hero-actions .button { padding: 13px 16px; font-size: 14px; gap: 16px; }
-  .hero .chip-art { height: 100%; min-height: 0; margin: 0; align-self: stretch; }
-  .hero .chip-svg.breach-svg { width: 100%; height: 100%; max-height: none; min-height: 0; flex: 1 1 auto; }
   .hero-footer { margin: 0; padding: 15px 0; }
 }
 @media screen and (max-width: 1100px) {
@@ -29,7 +73,7 @@
 @media screen and (max-width: 760px) {
   .hero { padding-top: 10px; }
   .hero h1 { font-size: 21vw; margin: 10px 0 2px; }
-  .hero-bottom { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px; align-items: stretch; }
+  .hero-bottom { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 8px; align-items: center; }
   .hero-copy { padding: 0; }
   .hero .paper-title { font-size: 24px; line-height: 1.2; margin-bottom: 8px; }
   .hero .hero-copy > p:not(.publication) { font-size: 16px; line-height: 1.5; margin-top: 8px; max-width: none; }
@@ -43,7 +87,7 @@
   .hero .hero-actions .button { padding: 10px 11px; font-size: 12.5px; gap: 8px; }
 }
 /* The introductory sentence is repeated in Summary; on compact phones give
-   its space to the animation while keeping title, venue, and resources visible. */
+   more space to the title, venue, and resources. */
 @media screen and (max-width: 760px) and (max-height: 700px) {
   .hero .hero-copy > p:not(.publication) { display: none; }
   .hero .paper-title { font-size: 22px; }
@@ -60,9 +104,22 @@
 }
 /* Preserve readable content in very short landscape windows or at high zoom. */
 @media screen and (max-height: 520px) {
-  .hero { height: auto; min-height: calc(100svh - var(--header-height)); grid-template-rows: auto auto auto auto; }
-  .hero .chip-art { min-height: 230px; }
-  .hero .chip-svg.breach-svg { height: 230px; }
+  .hero { height: auto; min-height: calc(100svh - var(--header-height)); grid-template-rows: auto auto auto; }
 }
 
 .hero-topline { justify-content: flex-end; }
+
+/* Keep animation controls in the viewport-reserved landing footer. */
+@media screen {
+  .hero-footer { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px 20px; }
+}
+.hero-footer > .mono { justify-self: end; }
+.hero-motion-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.hero-motion-controls button { border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--text); padding: 7px 12px; font-family: var(--sans); font-size: 14px; line-height: 1.4; letter-spacing: 0; white-space: nowrap; }
+.hero-motion-controls button:hover { border-color: var(--orange); color: var(--orange); }
+@media screen and (max-width: 1000px) {
+  .hero-footer { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .hero-motion-controls { grid-column: 1 / -1; grid-row: 1; }
+  .hero-footer > a { grid-column: 1; grid-row: 2; }
+  .hero-footer > .mono { grid-column: 2; grid-row: 2; }
+}

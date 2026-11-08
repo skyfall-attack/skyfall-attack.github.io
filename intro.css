@@ -1,0 +1,39 @@
+.entry-intro { --entry-bg: #080b0f; position: fixed; inset: 0; z-index: 1000; visibility: visible; isolation: isolate; contain: layout paint; overflow: hidden; }
+.entry-backdrop { position: absolute; inset: 0; background: var(--entry-bg); }
+.entry-texture { position: absolute; left: 50%; top: 50%; width: 1024px; height: 1024px; max-width: none; opacity: 0; transform: translate3d(-50%, -50%, 0); backface-visibility: hidden; pointer-events: none; }
+.entry-shutter { position: absolute; left: 50%; top: 50%; width: 208px; height: 208px; border-radius: 50%; background: var(--entry-bg); transform: translate3d(-50%, -50%, 0); pointer-events: none; }
+.entry-dots { position: absolute; left: 50%; top: 50%; display: flex; gap: clamp(28px, 7vw, 90px); transform: translate3d(-50%, -50%, 0); pointer-events: none; }
+.entry-dot { display: block; width: 13px; height: 13px; border-radius: 50%; background: var(--text); opacity: 0; }
+html.entry-playing .entry-texture { will-change: transform, opacity; }
+/* The lifted heading and hero decoration may extend past the viewport during
+   the reveal. Clip only horizontal overflow, preserving vertical scroll width. */
+html.entry-playing { overflow-x: hidden; overflow-x: clip; }
+/* Lift the real heading above the intro without changing its layout box.
+   Its transform returns to identity, eliminating the replica-to-page handoff. */
+html.entry-playing .hero { isolation: auto; overflow: visible; }
+html.entry-playing .hero-grid,
+html.entry-playing .hero::before { z-index: 0; }
+html.entry-playing .hero-bottom,
+html.entry-playing .hero-footer { position: relative; z-index: 1; }
+html.entry-playing #hero-title { z-index: 1001; opacity: 0; transform-origin: 0 0; will-change: transform, opacity; pointer-events: none; }
+html.entry-playing .entry-backdrop,
+html.entry-playing .entry-shutter,
+html.entry-playing .entry-dot { will-change: opacity; }
+/* Freeze expensive SVG filters and trace animations behind the opening iris. */
+html.entry-playing .header *,
+html.entry-playing main *,
+html.entry-playing .footer * { animation-play-state: paused !important; }
+.entry-skip { position: absolute; right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--text); font: 14px/1.5 Arial, sans-serif; padding: 10px 17px; cursor: pointer; }
+.entry-skip:hover { border-color: var(--orange); color: var(--orange); }
+.entry-skip:focus-visible { outline: 2px solid var(--orange); outline-offset: 5px; }
+/* Intro focus management should not look like a keyboard selection.
+   The marker is removed when keyboard navigation resumes. */
+[data-entry-focus]:focus { outline: none; }
+#replay-intro:disabled { opacity: .45; cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  .entry-intro { display: none !important; }
+  html.entry-pending body { visibility: visible; }
+}
+@media print { .entry-intro, #replay-intro { display: none !important; } }
+
+[data-theme="light"] .entry-intro { --entry-bg: #f8f7f4; }
